@@ -23,6 +23,7 @@ MAX_CANDIDATES = 16
 CORE_WORDS = {"香港", "多謝", "唔該", "廣東話", "粵語", "食飯", "再見"}
 CORE_PHRASES = {"早晨", "晚安", "香港人"}
 CORE_TERMS = CORE_WORDS | CORE_PHRASES
+CORE_CHARACTERS = set("我你佢係好呢咁呀") | set("".join(CORE_TERMS))
 
 
 def is_han_word(word: str, min_length: int = 1, max_length: int = 8) -> bool:
@@ -95,7 +96,7 @@ def convert(
     syllable_frequency: dict[str, int] = defaultdict(int)
     character_groups: dict[str, list[str]] = defaultdict(list)
     character_readings: dict[str, set[str]] = defaultdict(set)
-    core_characters = set("".join(CORE_TERMS))
+    core_characters = CORE_CHARACTERS
 
     for _line, fields in dictionary_rows(upstream / WORD_TABLE):
         word = unicodedata.normalize("NFC", fields[0])
@@ -181,6 +182,16 @@ def convert(
     for _key, phrase, reading, _line in selected_phrases:
         add_candidate(ime_rows, reading, phrase)
         source_words.add(phrase)
+
+    untoned_rows: dict[str, list[str]] = defaultdict(list)
+    for reading, candidates in ime_rows.items():
+        untoned = re.sub(r"[1-6]", "", reading)
+        if untoned == reading:
+            continue
+        untoned_rows[untoned].extend(candidates)
+    for reading, candidates in untoned_rows.items():
+        ranked = sorted(dict.fromkeys(candidates), key=lambda candidate: candidate not in core_characters)
+        ime_rows[reading] = ranked[:MAX_CANDIDATES]
 
     output.mkdir(parents=True, exist_ok=True)
     words_path = output / f"{CODE}.txt"
