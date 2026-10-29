@@ -1,232 +1,200 @@
-# Rime schema
-# encoding: utf-8
-
-schema:
-  schema_id: jyut6ping3
-  name: 粵語拼音
-  version: "2024.12.01"
-  author:
-    - Ayaka Mikazuki <ayaka@mail.shn.hk>
-    - LeiMaau <leimaau@qq.com>
-    - chaaklau <chaakming@gmail.com>
-    - laubonghaudoi <laubonghaudoi@icloud.com>
-    - tanxpyox <tanxpyox@gmail.com>
-    - William915 <William915@gmail.com>
-    - szc126 (@szc126)
-    - Bing ZHEUNG <bing@zheung.org>
-    - graphemecluster <graphemecluster@gmail.com>
-
-  description: |-
-    採用香港語言學學會粵語拼音方案
-    https://www.lshk.org/jyutping
-    支援聲調顯示同輸入
-    Telegram 用户交流組 https://t.me/rime_cantonese
-
-  dependencies:
-    - luna_pinyin
-    - loengfan
-    - stroke
-    - cangjie5
-
-switches:
-  - name: ascii_mode
-    reset: 0
-    states: [ 粵, 英 ]
-  - name: full_shape
-    states: [ 半角, 全角 ]
-  - options: [ noop, variants_hk, trad_tw, simplification ]
-    states: [ 傳統漢字, 香港傳統漢字, 臺灣傳統漢字, 大陆简化汉字 ]
-    # 修改下面箭嘴指住嘅數字以改變預設用字（數字 [0, 1, 2, 3] 分別對應上表）
-    #    例如「reset: 0」會將用字預設為 OpenCC 傳統漢字，如此類推
-    # Edit the number indicated by the arrow below to change the default character style
-    #    [0 = OpenCC Traditional Chinese; 1 = Hong Kong TC; 2 = Taiwan TC; 3 = Mainland Simplified Chinese]
-    # 或刪除下行以記住用户設定 Or remove the following line to remember user setting
-    reset: 1  # <-- 此數字 this number
-  - name: ascii_punct
-    states: [ 。，, ．， ]
-  - name: emoji_cantonese_suggestion
-    # 取消下行註釋（移除 # 號），預設啓動 emoji
-    #reset: 1
-    states: [ 冇 Emoji, 有 Emoji ]
-
-engine:
-  processors:
-    - ascii_composer
-    - recognizer
-    - key_binder
-    - speller
-    - punctuator
-    - selector
-    - navigator
-    - express_editor
-  segmentors:
-    - ascii_segmentor
-    - matcher
-    - affix_segmentor@luna_pinyin
-    - affix_segmentor@loengfan
-    - affix_segmentor@stroke
-    - affix_segmentor@cangjie5
-    - abc_segmentor
-    - punct_segmentor
-    - fallback_segmentor
-  translators:
-    - punct_translator
-    - script_translator
-    - script_translator@luna_pinyin
-    - script_translator@loengfan
-    - table_translator@stroke
-    - table_translator@cangjie5
-  filters:
-    - simplifier@emoji_cantonese_suggestion
-    - simplifier
-    - simplifier@variants_hk
-    - simplifier@trad_tw
-    - uniquifier
-    - reverse_lookup_filter@jyut6ping3_reverse_lookup
-
-speller:
-  alphabet: zyxwvutsrqponmlkjihgfedcba
-  delimiter: " '"
-  algebra:
-    # 取消下兩行註釋（移除 # 號），支援疑影交替： ng- 通 Ø-，Ø- 通 ng-
-    #- derive/^ng([aeiou])/$1/
-    #- derive/^([aeiou])/ng$1/
-
-    # 取消下行註釋，支援泥來合流： n- 併入 l- ，如「你」讀若「理」
-    #- derive/^n(?!g)/l/
-
-    # 取消下行註釋，支援圓唇輔音合口韻缺位：韻母 o 之前 gw-, kw- 併入 g-, k- ，如「國」讀若「各」、「廓」讀若「確」
-    #- derive/^(g|k)wo/$1o/
-
-    # 取消下行註釋，支援獨立鼻音韻 ng 併入 m，如「吳」讀若「唔」
-    #- derive/^ng(?=\d)/m/
-
-    # 取消下兩行註釋，支援韻尾 -n、-ng 交替，如「恒生」讀若「痕身」
-    #- derive/n(?=\d)/ng/
-    #- derive/ng(?=\d)/n/
-
-    # 取消下兩行註釋，支援韻尾 –t、-k 交替，如「北」讀若「不」
-    #- derive/t(?=\d)/k/
-    #- derive/k(?=\d)/t/
-
-    # 取消下兩行註釋，支援韻尾 –m、-n 交替，如「點」讀 din2
-    #- derive/m(?=\d)/n/
-    #- derive/n(?=\d)/m/
-
-    # 取消下兩行註釋，支援韻尾 –p、-t 交替，如「碟」讀 dit2
-    #- derive/p(?=\d)/t/
-    #- derive/t(?=\d)/p/
-
-    - derive/^([aeiou])/q$1/      # 增加 q 表示喉塞
-    - derive/^jy?([aeiou])/y$1/   # 容錯 je -> ye, jyu -> yu
-    - derive/^jyu/ju/             # 容錯 jyu -> ju
-    - derive/yu(?!ng|k)/y/        # 容錯 yu -> y
-    - derive/(g|k)u(?!ng|k)/$1wu/ # 輔音圓唇
-    - derive/eoi(?=\d)/eoy/       # 容錯
-    - derive/eo/oe/               # 容錯 eo/oe 不分
-    - derive/oe/eo/               # 容錯 eo/oe 不分
-    - derive/aa(?=\d)/a/          # 容錯
-    - derive/\d//                 # 忽略聲調
-
-    - abbrev/^([a-z]).+$/$1/      # 首字母簡拼
-
-    - xform/1/v/                  # 陰平
-    - xform/4/vv/                 # 陽平
-    - xform/2/x/                  # 陰上
-    - xform/5/xx/                 # 陽上
-    - xform/3/q/                  # 陰去
-    - xform/6/qq/                 # 陽去
-
-translator:
-  dictionary: jyut6ping3
-  spelling_hints: 8  # 將呢度改作 0，可以去除候選字後邊嘅粵拼提示
-  preedit_format:
-    - xform/([aeiouymngptk])vv/${1}4/
-    - xform/([aeiouymngptk])xx/${1}5/
-    - xform/([aeiouymngptk])qq/${1}6/
-    - xform/([aeiouymngptk])v/${1}1/
-    - xform/([aeiouymngptk])x/${1}2/
-    - xform/([aeiouymngptk])q/${1}3/
-
-luna_pinyin:
-  tag: luna_pinyin
-  dictionary: luna_pinyin
-  prefix: "`"
-  suffix: ";"
-  tips: 〔普通話〕
-  preedit_format:
-    - xform/([nl])v/$1ü/
-    - xform/([nl])ue/$1üe/
-    - xform/([jqxy])v/$1u/
-
-loengfan:
-  tag: loengfan
-  dictionary: loengfan
-  prefix: "r"
-  suffix: ";"
-  tips: 〔粵語兩分〕
-
-stroke:
-  tag: stroke
-  dictionary: stroke
-  prefix: "x"
-  suffix: ";"
-  tips: 〔筆畫〕
-  preedit_format:
-    - xlit/hspnz/一丨丿丶乙/
-
-cangjie5:
-  tag: cangjie5
-  dictionary: cangjie5
-  enable_user_dict: false
-  prefix: "v"
-  suffix: ";"
-  tips: 〔倉頡五代〕
-  preedit_format:
-    - 'xform/^([a-z]*)$/$1\t（\U$1\E）/'
-    - "xlit|ABCDEFGHIJKLMNOPQRSTUVWXYZ|日月金木水火土竹戈十大中一弓人心手口尸廿山女田難卜符|"
-  comment_format:
-    - "xlit|abcdefghijklmnopqrstuvwxyz~|日月金木水火土竹戈十大中一弓人心手口尸廿山女田難卜符～|"
-  disable_user_dict_for_patterns:
-    - "^z.*$"
-    - "^yyy.*$"
-
-jyut6ping3_reverse_lookup:
-  tags: [ luna_pinyin, loengfan, stroke, cangjie5 ]
-  overwrite_comment: false
-  dictionary: jyut6ping3
-
-variants_hk:
-  option_name: variants_hk
-  opencc_config: t2hkf.json
-
-trad_tw:
-  option_name: trad_tw
-  opencc_config: t2tw.json
-
-emoji_cantonese_suggestion:
-  opencc_config: emoji_cantonese.json
-  option_name: emoji_cantonese_suggestion
-  tips: none
-  inherit_comment: false
-
-punctuator:
-  import_preset: symbols_cantonese
-
-key_binder:
-  import_preset: default
-
-recognizer:
-  import_preset: default
-  patterns:
-    punct: "^/([0-9]0?|[a-z]+)$"
-    luna_pinyin: "^`[a-z']*;?$"
-    loengfan: "^r[a-z']*;?$"
-    stroke: "^x[hspnz]*;?$"
-    cangjie5: "^v[a-z]*;?$"
-
-__patch:
-  # 使用八股文語言模型
-  - grammar:/hant?
-  # 用户自訂設定
-  - jyut6ping3.custom:/patch?
+aa3	㚳	㢌	㰳	䢝	亜	亞	俹	呵	啊	埡	妿	婭	掗	氬	稏	襾
+baak6laap6	白立	白臘	白蠟	白鑞	白鱲	白𩶘
+bat1	㓖	㪤	㮿	㳼	㻶	䟆	䬛	不	吥	嗶	彃	泌	滭	潷	熚	珌
+bat1lau1	不嬲	不摟	不溜	不留	不遱
+bin1fo1	邊科
+bing4ling1baang4laang4	乒鈴嘭唥	乒鈴𠾴唥	砰呤嘭唥	砰呤𠾴唥	𠹶呤嘭唥	𠹶呤𠾴唥
+bong1wai1	邦威
+bou1jin1	煲煙
+bou2mou5	保姆	保母	褓姆	褓母	鴇母
+caang4gai1	倀雞	傖雞	掁雞	棖雞	殘雞	鋹雞
+caap3doi6	插袋
+cam3hei3	侵氣	唚氣	噆氣	噚氣	譖氣
+ceot1	㔘	㤕	䟣	䢺	出	岀	怵	欪	焌	絀	黜	齣
+ci4	㔭	㘂	㘹	㞴	㢮	㤵	㮛	䆅	䈘	䐡	䙙	䛂	䛐	䜄	䞾	䨏
+coeng1jeon6	昌潤
+coeng4	㘯	㙊	㟄	䔗	䠆	䯴	仧	仩	兏	場	塲	墻	嬙	庠	廧	戕
+cyun4	㒰	㟫	㠝	㯌	㻇	䀬	伝	佺	侟	傳	全	圌	墫	壿	姾	存
+daa2	打
+daa2laan6saa1pun4man6dou3duk1	打爛沙盆問到㞘	打爛沙盆問到䐁	打爛沙盆問到篤	打爛沙盆璺到㞘	打爛沙盆璺到䐁	打爛沙盆璺到篤	打爛沙盤問到㞘	打爛砂盆問到㞘
+daai6	㐲	㞭	㣕	㭐	㶡	䈆	䲦	亣	大	汏	簤	軑	釱	𠯈
+daai6sek6zaak3sei2haai5	大石砸死蟹	大石磧死蟹	大石笮死蟹	大石責死蟹	大石迮死蟹
+dak1	㝵	㝶	㤫	㥁	䙷	䙸	嘚	得	徳	德	恴	悳	惪	淂	鍀
+dei6	哋	地	坔	埊	墬	嶳
+dim2hai6	點係
+diu2nei5lou5mei2	屌你滷味	屌你老味	屌你老尾	屌你鹵味	𨳒你老味	𨳒你鹵味
+do1	多	哆	夛	崜	茤	跢	𤥀
+do1ze6	多謝
+dou3	㓃	䑒	倒	到	妒	妬	捯	斁	椡	殬	秅	秺	箌	菿	螙	蠧
+dou6	㐁	㘏	䆃	䊭	䌦	䟻	䲧	噵	導	幬	度	悼	杜	檤	毒	渡
+dung1	東	㐑	㚵	㫡	㲇	䍶	䰤	䳉	倲	冬	咚	埬	娻	崬	昸	柊
+dung6	㓊	㢥	㷲	䞒	侗	働	動	垌	姛	峒	峝	幢	恫	慟	憅	戙
+faan5	飯	販	軬	𨠒
+faan6	飯	㕨	㶗	䉊	䥑	帆	梵	樊	泛	滼	犯	瓣	礬	笵	範	范
+faat3	㛲	㳒	䂲	䰋	佱	彂	沷	法	灋	珐	琺	発	發	砝	蕟	醱
+fan1	㖧	㛰	㞣	㡪	㤋	㬟	㯣	㱪	䌲	䎜	䗼	䙧	䭻	䵫	兺	分
+fung1	㒥	㕫	㛔	㜂	㠦	㶻	㷨	㷭	㸼	䀱	䒠	䗦	䗬	䧏	䵄	丰
+gaa1	㔔	㔖	㖙	㚙	㠰	㹢	䂟	䈔	䕒	䪪	䴥	乫	伽	傢	加	嘉
+gaau1dung1	茭東
+gaau2wo5	搞喎	搞涴	搞禍	搞腡	攪喎	攪堝	攪禍
+gam1jyu6	金裕
+gam1on1	金鞍
+gam1zing3	金證
+gan2gau2	緊狗
+gei1	㙋	㙨	㚦	㫷	㼄	䇫	䛴	䟇	䟚	䡄	䥓	䩭	丌	乩	僟	其
+gi1gat6	嘰屹	嘰訖	嘰趷	嘰𠺝	齮齕
+gi4gi1gat6gat6	嘰嘰咭咭	嘰嘰屹屹	嘰嘰訖訖	嘰嘰趷趷	齮齮齕齕
+gin3	見	䇟	建	旔	毽	腱	鋻	𤧣
+goi1	該	㨟	㱾	䀭	䐩	䬵	侅	剴	垓	姟	峐	晐	畡	祴	絯	胲
+gong2	港	㼅	㽘	䇊	䴚	傋	広	耩	講	顜	𪇵
+gong2man4	港民
+gun1saan1	官山
+gung1	㒶	㓚	㓛	㣉	㫒	䢼	䣏	䰸	䲲	䳍	供	公	共	功	匑	塨
+gwok3	㕵	㬑	䂸	䆐	䧐	䬎	嘓	囗	囯	囶	囻	圀	國	墎	崞	幗
+gwok3sung1	國鬆
+gwong2	廣	㼅	䇊	広	獷	誑	𪇵
+gwong2dung1waa2	廣東話
+gwong2gin3	廣建
+gwong2sing3	廣聖
+haai4saap6saap6	嚡澀澀	嚡烚烚	嚡煠煠	嚡熠熠	嚡霎霎	嚡𤆣𤆣	鞋烚烚	鞋颯颯
+hak1mang1mang1	黑掹掹	黑擝擝	黑盟盟	黑蜢蜢	黑鼆鼆
+hak1mi1mang1	黑咪蚊	黑咪𠵼	黑瞇掹	黑瞇擝	黑瞇盟	黑瞇蚊
+hau2	㔚	㖃	㠬	亼	劶	口	吼	吽	搝	糗	𤘘
+hei3	㑶	㞒	㞓	㫓	㸍	䊠	䔾	䨳	䮎	乞	呬	咥	噐	器	囕	塈
+hin2wan6	顯運
+hoeng1	香	㴡	㿝	䅨	楿	稥	膷	薌	郷	鄉	鄊	鄕	鱜	麘
+hoeng1gong2	香港
+hoeng1gong2jan4	香港人
+hoi2bo1	凱波
+hou2	㝀	好	恏	𡥘	𣫮
+hung4wai4	洪圍
+jan2	人	㞬	㣼	㥯	㦩	㶏	䨸	峎	嶾	忍	檃	檼	櫽	殷	濦	癮
+jan4	人	㝙	亻	仁	儿	夤	寅	忈	忎	朲	杁	殥	璌	秂	紉	芢
+jat1	一	壱	壹	夁	嬄	弌	辷
+jau1zoi1jau4zoi1	優哉悠哉	優哉游哉	優哉遊哉	悠哉悠哉	悠哉遊哉
+jau4	㐕	㒡	㕱	㘥	㚭	㛜	㫍	㳊	㳺	㻥	㽕	㽥	㾞	䌊	䌛	䍃
+jau4ceot1	郵出
+jau5	㔽	㕗	㕛	㞢	㮋	䂋	䅎	䒴	䛻	䣭	䬀	䳑	丣	卣	友	唀
+ji1jap1	伊挹	依挹	依揖	咿唈	咿挹	咿邑
+ji1ngaa4sung1gong3	依牙鬆䚗	依牙鬆弶	依牙鬆槓	依牙鬆鋼	𪘲牙聳䚗
+ji4	㐌	㖇	㝖	㞔	㥴	㦾	㧫	㰘	㴣	㹫	㺿	㼢	䄬	䋩	䎟	䎠
+ji5	㕥	㠯	㩘	㫆	㰝	䋙	以	佁	佴	儗	厼	孴	尒	尓	尔	崺
+ji6	食	㑥	㒃	㓷	㡼	㻛	㼁	㽈	䓪	䔬	䝯	䰮	䰯	䲪	二	伿
+jim1zim1	奄尖	淹尖	腌尖	腌臢	醃尖
+jim1zim1seng1mun6	㤿憸腥悶	奄尖聲悶	淹尖聲悶	腌尖聲悶	腌尖腥悶	醃尖聲悶	醃臢腥悶
+jim4zou3	鹽竈
+jin4	㘋	㜣	㝚	㢇	㢺	㭹	㳄	㳭	㵪	㸐	㹂	㿼	䀽	䂴	䇾	䊙
+jin6	見	㦓	䂩	䏹	䙹	䢭	䵡	俔	咞	哯	唁	喭	垷	娊	峴	嵃
+jing4	㐩	㓝	㗡	㜲	㣜	㨕	㭁	㵬	㶈	㺱	㼆	㼛	㿘	䁝	䃷	䄧
+juk6	㣃	㥔	㦺	㻙	䄾	䋭	䘻	䞝	俼	儥	哊	喅	嗕	堉	媷	宍
+jyu4	㐵	㔱	㖲	㤤	㥚	㥥	㦙	㦛	㬂	㬰	㭌	㳛	㶛	㷒	㺞	㻀
+jyu5	語	㐠	㑨	㒁	㒜	㖳	㘾	㙑	㙖	㝢	㡰	㨎	㲾	㺄	㼌	䣁
+jyu6	語	㹘	䂊	䘘	䘱	䢩	䦸	䨒	䴁	俞	兪	匬	吁	喩	喻	媀
+jyun4	㝴	㞍	㟲	㟶	㥳	㨬	㫟	㳂	㷧	㹉	㹡	㽭	㿪	䍏	䒯	䖠
+jyun4jeon6	源潤
+jyut6	粵	㳉	䄴	䋉	䋐	䋖	䟠	䡇	䢖	䤦	䮅	乙	乚	仴	僪	刖
+jyut6jyu5	粵語
+kau4gaa3	球架
+kei4	㐞	㞿	㟓	㟚	㩽	㫅	㯦	䃆	䅲	䉻	䑴	䓫	䕤	䞚	䡋	䩓
+laai2je5	奶嘢	攋嘢	瀨嘢	舐嘢	𦧺嘢
+laan4gwai3	蘭桂
+laap3laap3ling3	擸擸令	擸擸呤	擸擸炩	爉爉令	立立令	立立呤	立立靚	臘臘呤
+lau4	㐬	㡞	㳅	㺏	㽞	䅹	䉧	䖻	䗜	䚧	䝀	䝏	䣚	䫫	䬟	䮫
+lei5	㸚	㾖	䕥	䤚	䧉	俚	儞	哩	娌	履	峛	峲	悝	李	浬	理
+ling3laap3laap3	令擸擸	令爉爉	令立立	呤立立	炩擸擸	炩立立	靚立立
+lok6	㓢	㦡	㪾	㴖	䀩	䎊	䚥	咯	嗠	峈	楽	樂	橐	洛	濼	烙
+lou5	㐗	㔪	㖈	㢚	㧯	㯭	㲶	㳣	䇭	䎛	䕩	䝤	䲐	䳓	佬	僚
+m4	唔	呣	嘸
+m4goi1	唔該
+maa5	䣕	䣖	嗎	嘛	媽	榪	溤	獁	瑪	碼	螞	遤	鎷	馬	鰢	鷌
+maan5	晚	㿸	䅋	娩	晩	梚	睌	矕	脕	葂
+maan5on1	晚安
+maang4fo2	盲火
+man4	㐎	㞶	㟩	㟭	㣊	㨉	䁕	䂥	䃉	䋋	䎹	䎽	䝧	䟨	䡑	䦩
+man6ming4	問明
+mat6	㫘	㳴	㴵	㵥	㸓	䌏	䍪	䛑	䤉	䥼	伆	勿	嘧	宓	宻	密
+mei5paai3	美派
+mei6seoi2tung4jan4	昧水銅人	未水銅人	沒水銅人	沬水銅人	眛水銅人
+ming4	㝠	㫥	䄙	䆩	䊅	䳟	冥	名	嫇	明	暝	朙	榠	洺	溟	焽
+miu5miu5	杳杳	杳渺	眇眇	窈窈	藐藐
+mou4	㣳	㧌	㮘	㲠	㷻	㹈	䉑	䥻	䭷	䱯	亡	兦	堥	墲	娬	嫫
+mou5	㑄	㒇	㟂	㵲	㶃	䍢	䒉	䟼	䥈	䳇	侮	倵	儛	冇	嘸	堥
+mou5lei4daap3saap3	冇厘傝𠎷	冇厘傝𢶍	冇厘搭霎	冇嚟搭霎	冇釐傝𢶍	冇釐搭霎
+mou5naa1nang3	冇嗱褦	冇挐掕	冇𠸎褦	冇𪐀㨢	冇𪐀褦
+nei5	㛋	䕥	伱	你	儞	妳	您	抳	旎	柅	檷	洱	狔	祢	禰	苨
+ng4	唔	㐚	㹳	㻍	䓊	䦜	䫓	䮏	吳	吾	呉	嗯	夻	娪	峿	梧
+ng5zip3	五接
+ngaa6deng6	掗埞	掗定	掗碇	枒碇	𦜖埞
+ngai6lou4	毅廬
+ngan4dou2	銀島
+ngan4zau1	銀洲
+ngo5	㦱	㦳	㧴	䞲	我	猗	砈	騀	𢦓
+oi3dou1	愛都
+on1	安	㫨	䀂	䢿	侒	峖	桉	氨	盎	胺	銨	鞌	鞍	鮟	𤇼	𤥃
+paan3cyun1	盼穿
+pan4lan4	頻侖	頻倫	頻能	頻蹸	頻𠹹
+piu1miu5	漂渺	縹渺	飄渺	飄眇	飄緲
+pun4gwat1	盤骨
+saa1zi2	沙子	沙紙	砂子	砂紙	紗紙
+saam1	㭅	㰑	㺑	䀐	三	仨	剼	叁	參	嘇	幓	弎	彡	摻	攕	杉
+saap6haa5saap6haa5	拾下拾下	烚下烚下	煠下煠下	熠下熠下	霎下霎下	霎吓霎吓	𤆣下𤆣下
+sai3	㔟	㔺	㭡	世	丗	些	僿	勢	卋	埶	壻	婿	朑	楴	笹	細
+sam1	㕘	㝳	㣺	㴱	䆦	參	堔	心	曑	杺	森	棽	槮	深	琛	甧
+sam1cyun1	心村
+sam1hong1	深康
+san1	㑗	㖕	㚨	㛙	㛛	㜪	㢹	㳯	㽓	䅸	䊁	䢾	䯂	䰠	伸	侁
+san1gaau3	新滘
+san4	晨	㫳	䆣	䢅	䢻	䣅	宸	敐	曟	栕	桭	榊	神	臣	莀	蜃
+san4kuk1	晨曲
+sang1	㽒	䲼	䴤	僧	栍	殅	泩	湦	牲	狌	珄	生	甥	笙	苼	鉎
+sau2	㐿	㝊	㟬	䏂	䢘	䭭	傁	叜	叟	嗾	垨	守	手	扌	搜	擻
+se6lei1ngaan5	射厘眼	射喱眼	射猁眼	猞喱眼	猞猁眼
+sei2	㱝	死
+seoi2	㑯	㝽	㲑	䅡	䭉	偦	嶲	巂	水	氵	氺	湑	盨	稰	糈	誰
+si1	㒋	㕧	㚸	㟃	㠼	㴲	㺇	㺨	㺰	㻢	㽄	䇁	䌤	䌳	䐖	䔮
+si6	㐊	㕝	㹝	䊓	䏡	䜵	䜻	䟗	䩃	䭄	亊	事	仕	伺	侍	叓
+si6gau2daan6daan6	事九但但	事九旦旦	是九但但	是九旦旦	是狗彈彈
+sik1	㗭	㙽	㛫	㛭	㝜	㫺	㭊	㮩	㱇	㱤	㴧	䀌	䁺	䉢	䤭	䭒
+sik6	食	射	崱	捑	篒	蝕	飤
+sik6faan6	食飯
+sing1pun2	昇盆	昇盤	星盆	星盤	鋅盆	鋅盤
+sing3	勝	圣	姓	性	榺	橳	琞	聖	胜	腥	蕂	貹
+sing4	㞼	㴍	㼩	䋲	䡕	䫆	䮪	丞	乗	乘	城	堘	塍	塖	娍	宬
+siu2	㕾	䒕	䒚	小	少	毟	筱	篠	謏
+so1fu4	梳乎	梳扶	梳芙	疏乎	疏扶
+soeng1	㐮	㕠	㜀	㠤	䉶	䌮	䝄	䨇	䵰	䵼	傷	儴	勷	商	墒	孀
+sou3	㕖	㨞	㲧	㴑	㿋	䛾	傃	嗉	埽	塐	塑	嫊	愫	愬	掃	數
+sung1ging3	鬆徑
+sung1sam1	鬆心
+taai3fu2	泰虎
+tai2	䌡	䪆	体	挮	梯	睇	躰	軆	骵	體
+tau4	㓱	㢏	䕱	䵉	亠	投	牏	緰	酘	頭	骰
+tin1	䀖	䒶	䚶	兲	天	靔	靝	黇	𠀡
+tin1jiu6	天耀
+tung4jan4	仝人	同人	同仁	同寅	峒人	瞳人
+waa2	話	䠚	剮	搲	攨	畫	𢱑
+waa6	話	㕦	䇈	䛡	婲	嬅	崋	摦	槬	樺	澅	畫	絓	繣	纗	罣
+wai4	㗹	䑊	䔺	䙟	䜅	䝐	䧦	唯	喡	囗	圍	圩	媁	帷	幃	惟
+wan6nei1laa2	呍呢嗱	呍呢拿	雲呢嗱	雲呢拿	雲尼嗱	雲尼拿
+wong4	㞷	㣴	㶂	㾮	䅣	䊗	䊣	䍿	䑟	䞹	䪄	䮲	䳨	仼	偟	凰
+wu4jeon6	湖潤
+zai2	䍤	仔	囝	崽	泲	濟
+ze6	謝	㓔	㴬	䣠	䤳	䵦	塮	榭	藉
+zeoi2zeu1zeu1	咀啁啁	咀招招	咀𡁻𡁻	嘴啁啁	嘴招招	嘴𡁻𡁻
+zeoi3laang5	最冷
+zi1	㞢	㠿	㩼	㯄	㰣	㲍	㴯	㸟	㽧	㽻	㾳	㿳	䅔	䊷	䎩	䓋
+zi2	㕄	㜽	㞨	㡳	㡶	㧗	㫑	㫖	㮹	㲛	㺭	㾅	䅩	䇛	䔂	䘣
+zi2seoi6	紫瑞
+zi2tok3	紙託
+zi6	食	㣥	㧘	㨁	㭒	㱴	㸻	䄺	䆈	䇃	䉜	䎣	䕌	䚦	䝰	䦙
+zik1jat1	職一
+zing3	㡠	㡧	㱏	㱐	䈣	䥌	䥭	幀	政	正	氶	症	癥	証	證	鉦
+zit6loeng4	截糧
+zoi3	再	䵧	儎	洅	縡	載	𨚵	𩛥
+zoi3gin3	再見
+zok3syun4	作船
+zou1jap6	租入
+zou2	早	䔃	䖕	䖣	䗢	䲃	栆	棗	澡	珇	瑵	璪	祖	組	繰	蒩
+zou2san4	早晨
+zung1	㕬	㙡	㚇	㣭	㥙	㨑	㫪	㯶	㹣	䁓	䇗	䈦	䈺	䍟	䎫	䑸
+zung1zi2	中子	中指	中止	宗旨	糉子	終止
