@@ -183,13 +183,16 @@ def convert(
         add_candidate(ime_rows, reading, phrase)
         source_words.add(phrase)
 
-    untoned_rows: dict[str, list[str]] = defaultdict(list)
+    alias_rows: dict[str, list[str]] = defaultdict(list)
     for reading, candidates in ime_rows.items():
-        untoned = re.sub(r"[1-6]", "", reading)
-        if untoned == reading:
+        syllables = re.findall(r"[a-z]+[1-6]", reading)
+        if "".join(syllables) != reading:
             continue
-        untoned_rows[untoned].extend(candidates)
-    for reading, candidates in untoned_rows.items():
+        untoned_syllables = [re.sub(r"[1-6]", "", syllable) for syllable in syllables]
+        alias_rows[" ".join(syllables)].extend(candidates)
+        alias_rows["".join(untoned_syllables)].extend(candidates)
+        alias_rows[" ".join(untoned_syllables)].extend(candidates)
+    for reading, candidates in alias_rows.items():
         ranked = sorted(dict.fromkeys(candidates), key=lambda candidate: candidate not in core_characters)
         ime_rows[reading] = ranked[:MAX_CANDIDATES]
 
